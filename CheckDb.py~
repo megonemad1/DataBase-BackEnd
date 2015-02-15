@@ -1,15 +1,90 @@
 import sqlite3
 DataPath = "database.db"
+
+class Refrence:
+	TableForeignKey
+	ForeignTable
+	ForeignTablePrimaryKey
+
+	def __init__(self,CTFk,FT,FTPK):
+		self.TableForeignKey=CTFK
+		self.ForeignTable=FT
+		self.ForeignTablePrimaryKey=FTPK
+	def __str__(self):
+		return '''FOREIGN KEY ({0}) REFERENCES {1}({2})'''.format(TableForeignKey,ForeignTable,ForeignTablePrimaryKey)
+	__repr__ = __str__
+	
+
+class Tabe:
+	
+	def __init__(self,tablename):
+		self.TableName=tablename
+		self.col={}
+		self.ref=[]
+	def AddCol(self, ColAsStr):
+		c = str.Split(" ",ColAsStr)
+		if len(c)>=2:
+			return AddColByParts(c[0],c[1])
+		else:
+			return None
+	def AddColByParts(self,ColName, ColType):
+		if self != None:
+			self.col[ColName]=ColType
+		return self
+	def AddReff(self,TableForeignKey,ForeignTable):
+		if self != None:
+			self.ref.append(Refrence(TableForeignKey,ForeignTable,ForeignTable+".ID")
+			self.col[TableForeignKey]="integer"
+		return self
+	def __str__(self):
+		if self != None:
+			c= []
+			for clm in self.col.keys():
+				c.append(clm +" "+self.col[clm])
+			s= '''CREATE TABLE IF NOT EXISTS {0} (ID integer PRIMARY KEY AUTOINCREMENT, {1}'''.format(tablename,", ".join(c))
+			if len(self.ref)>0:
+				s+=", "+", ".join(self.ref)
+			s+=";"
+			return s
+		else:
+			return "error"
+	__repr__ = __str__
+
+
+
 def Check():
 	global DataPath
 	conn = sqlite3.connect(DataPath)
 	c= conn.cursor()
-	print("1")
-	c.execute('''CREATE TABLE IF NOT EXISTS Company (ID integer PRIMARY KEY AUTOINCREMENT, CompanyName text);''')
-	print("2")
-	c.execute('''CREATE TABLE IF NOT EXISTS Tutor (ID INTEGER PRIMARY KEY AUTOINCREMENT,TutorCompany int, TutorGroup int, TutorTeacher text, FOREIGN KEY (TutorCompany) REFERENCES Company(ID));''')
+	company = Table("Company")
+	company.AddCol("CompanyName text")
+	c.execute(str(company))
+	Tutor = Table("Tutor")
+	Tutor.AddCol("TutorGroup integer").AddCol("TutorTeacher text").AddReff("Company",company.TableName)
+	c.execute(str(Tutor))
+	Customer= Table("Customer")
+	Customer.AddCol("CustomerName text").AddReff("Tutor",Tutor.TableName)
+	c.execute(str(Customer))
+	Transaction = Table("Transaction")
+	Transaction.AddCol("Time timestamp").AddReff("Customer",Customer.TableName)
+	c.execute(str(Transaction))
+	FoodSupplyer= Table("FoodSupplyer")
+	FoodSupplyer.AddCol("SupplyerName Text").AddCol("Address text").AddCol("Email text").AddCol("Tell text")
+	c.execute(str(FoodSupplyer))
+	FoodIngredent = Table("FoodIngredent")
+	FoodIngredent.AddCol("Ingredent Name").AddCol("PricePerUnit integer").AddReff("Supplyer",FoodSupplyer.TableName)
+	c.execute(str(FoodIngredent))
+	Order = Table("Order")
+	Order.AddReff("Transaction",Transaction.TableName)
+	Order.AddReff("FoodIngredent",FoodIngredent.TableName)
+	c.execute(str(Order))
 	c.close()
 	conn.commit()
+	f = open("Shema.txt","wb")
+	s=("{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}".format(str(company),str(Tutor),str(Customer),str(Transaction),str(FoodSupplyer),str(FoodIngredent),str(Order))
+	f.write(s)
+	f.close()
+	print (s)
 def addData():
 	global DataPath
 	conn = sqlite3.connect(DataPath)
@@ -25,11 +100,13 @@ def getTableDB():
 	global DataPath
 	conn = sqlite3.connect(DataPath)
 	c= conn.cursor()
-	c.execute('''SELECT * FROM Company INNER JOIN Tutor on Tutor.TutorCompany= Company.ID WHERE Company.ID==1;''')
+	c.execute('''SELECT CompanyName,TutorGroup,TutorTeacher FROM Company INNER JOIN Tutor on Tutor.TutorCompany= Company.ID WHERE Company.ID==1;''')
 	vals = c.fetchall()
 	c.close()
 	return vals
 Check()
-addData()
-print(getTableDB())
-print ("checked")
+
+#addData()
+
+#print(getTableDB())
+#print ("checked")

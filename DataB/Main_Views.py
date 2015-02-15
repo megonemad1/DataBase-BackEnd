@@ -1,7 +1,11 @@
-from flask import Flask
+from flask import Flask,render_template,request,redirect,make_response
 import sqlite3
 from DataB import app
-DataBase = "FoodDb.db"
+from DataB import DataPath
+
+
 @app.route('/',methods=['GET','POST'])
 def home():
-	return "test"
+	global DataPath
+	print(DataPath)
+	return render_template("home.html")
