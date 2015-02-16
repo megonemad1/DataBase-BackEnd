@@ -1,8 +1,8 @@
 #!flask/bin/python
-from DataB import app
-from DataB import DataPath
 import CheckDb
-CheckDb.DataPath=DataPath
+print("checking")
 CheckDb.Check()
+
+from DataB import app
 app.run(debug=True,host="0.0.0.0", port=80)
 

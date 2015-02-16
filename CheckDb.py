@@ -1,6 +1,7 @@
 import sqlite3
-DataPath = "DataB/FoodDataBase.db"
-
+DataPath="FoodDataBase.db"
+SchemaPath="Schema.py"
+Folder="DataB\\"
 class Refrence:
 	def __init__(self,CTFK,FT,FTPK):
 		self.TableForeignKey=CTFK
@@ -53,8 +54,10 @@ class Table:
 
 def Check():
 	global DataPath
-	print (DataPath)
-	conn = sqlite3.connect(DataPath)
+	global SchemaPath
+	global Folder
+	print (Folder+DataPath+" "+Folder+SchemaPath)
+	conn = sqlite3.connect(Folder+DataPath)
 	c= conn.cursor()
 	Company = Table("Company")
 	Company.AddCol("CompanyName text")
@@ -80,7 +83,7 @@ def Check():
 	c.execute(str(FoodOrder))
 	c.close()
 	conn.commit()
-	f = open("Shema.py","wb")
+	f = open(Folder+SchemaPath,"wb")
 	s="#{0}\r\n#{1}\r\n#{2}\r\n#{3}\r\n#{4}\r\n#{5}\r\n#{6}\r\n".format(str(Company),str(Tutor),str(Customer),str(Transac),str(FoodSupplyer),str(FoodIngredent),str(FoodOrder))
 	s+=LoadImports()
 	s+=CreatePyClass(Company)
@@ -116,12 +119,12 @@ def getTestTableDB():
 	return vals
 
 def CreatePyClass(_Table):
-	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n{2}'''
+	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n{2}'''
 	doc=_Table.TableName+ " Table Contains columns: "
-	Atributes="\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n"
+	Atributes=""
 	for x in _Table.col.keys():
 		doc+=x+" of type "+_Table.col[x]+"|| "
-		Atributes+="\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',ID)\r\n\t\tself.{0}=c.fetchone()\r\n".format(x,_Table.TableName)
+		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\treturn Val\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {0} SET {1}=? WHERE ID=?''',(value,ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
 	doc+="Foreign Keys: "
 	for x in _Table.ref:
 		doc+=_Table.TableName+"."+x.TableForeignKey+" refrences "+x.ForeignTable+"."+x.ForeignTablePrimaryKey
