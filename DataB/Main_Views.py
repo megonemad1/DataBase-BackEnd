@@ -2,9 +2,9 @@ from flask import Flask,render_template,request,redirect,make_response
 import sqlite3
 from DataB import app
 import CheckDb
-import importlib
-Schema = importlib.import_module(CheckDb.SchemaPath)
-
+package = "DataB"
+name = str.split(CheckDb.SchemaPath,".")[0]
+imported = getattr(__import__(package, fromlist=[name]), name)
 def DBGetCompanys():
 	global CheckDb
 	conn = sqlite3.connect(CheckDb.DataPath)

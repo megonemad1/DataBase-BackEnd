@@ -119,12 +119,12 @@ def getTestTableDB():
 	return vals
 
 def CreatePyClass(_Table):
-	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n{2}'''
+	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO Company(CompanyName) VALUES (?)",(None,))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n{2}'''
 	doc=_Table.TableName+ " Table Contains columns: "
 	Atributes=""
 	for x in _Table.col.keys():
 		doc+=x+" of type "+_Table.col[x]+"|| "
-		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\treturn Val\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {0} SET {1}=? WHERE ID=?''',(value,ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
+		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(self.ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\treturn Val\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {0} SET {1}=? WHERE ID=?''',(value,self.ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
 	doc+="Foreign Keys: "
 	for x in _Table.ref:
 		doc+=_Table.TableName+"."+x.TableForeignKey+" refrences "+x.ForeignTable+"."+x.ForeignTablePrimaryKey
