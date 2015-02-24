@@ -100,7 +100,7 @@ def LoadImports():
 	global DataPath
 	global SchemaPath
 	global Folder
-	return '''import sqlite3\r\nDataPath="{0}"\r\n'''.format(DataPath)
+	return '''import sqlite3\r\nimport itertools\r\nimport functools\r\nDataPath="{0}"\r\n'''.format(DataPath)
 def addTestData():
 	global DataPath
 	conn = sqlite3.connect(DataPath)
@@ -124,7 +124,7 @@ def getTestTableDB():
 def CreatePyClass(_Table):
 	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n{2}'''
 	doc=_Table.TableName+ " Table Contains columns: "
-	Atributes="\t@classmethod\r\n\tdef GetAllKeys(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT ID FROM {0}''')\r\n\t\tVal= c.fetchall()\r\n\t\tc.close()\r\n\t\tids=[]\r\n\t\tfor x in Val:\r\n\t\t\tids.append(x[0])\r\n\t\treturn ids\r\n".format(_Table.TableName)
+	Atributes="\t@classmethod\r\n\tdef GetAllKeys(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT ID FROM {0}''')\r\n\t\tVal= c.fetchall()\r\n\t\tc.close()\r\n\t\treturn list(functools.reduce(itertools.chain,Val))\r\n".format(_Table.TableName)
 	no_of_col=len(_Table.col.keys())
 	Atributes+='''\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO {0}({1}) VALUES ({2})",({3},))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n'''.format(_Table.TableName,",".join(_Table.col.keys()),"?"+",?"*(no_of_col-1),"None"+",None"*(no_of_col-1))
 	strcast='''\tdef TableJson(self):\r\n\t\tr={"ID":self.ID}\r\n'''

@@ -1,11 +1,13 @@
 #CREATE TABLE IF NOT EXISTS Company (ID integer PRIMARY KEY AUTOINCREMENT, CompanyName text);
 #CREATE TABLE IF NOT EXISTS Tutor (ID integer PRIMARY KEY AUTOINCREMENT, TutorGroup integer, Company integer, TutorTeacher text, FOREIGN KEY (Company) REFERENCES Company(ID));
-#CREATE TABLE IF NOT EXISTS Customer (ID integer PRIMARY KEY AUTOINCREMENT, CustomerName text, Tutor integer, FOREIGN KEY (Tutor) REFERENCES Tutor(ID));
-#CREATE TABLE IF NOT EXISTS Transac (ID integer PRIMARY KEY AUTOINCREMENT, Customer integer, Time timestamp, FOREIGN KEY (Customer) REFERENCES Customer(ID));
-#CREATE TABLE IF NOT EXISTS FoodSupplyer (ID integer PRIMARY KEY AUTOINCREMENT, Address text, Email text, SupplyerName Text, Tell text);
-#CREATE TABLE IF NOT EXISTS FoodIngredent (ID integer PRIMARY KEY AUTOINCREMENT, Ingredent Name, PricePerUnit integer, Supplyer integer, FOREIGN KEY (Supplyer) REFERENCES FoodSupplyer(ID));
+#CREATE TABLE IF NOT EXISTS Customer (ID integer PRIMARY KEY AUTOINCREMENT, Tutor integer, CustomerName text, FOREIGN KEY (Tutor) REFERENCES Tutor(ID));
+#CREATE TABLE IF NOT EXISTS Transac (ID integer PRIMARY KEY AUTOINCREMENT, Time timestamp, Customer integer, FOREIGN KEY (Customer) REFERENCES Customer(ID));
+#CREATE TABLE IF NOT EXISTS FoodSupplyer (ID integer PRIMARY KEY AUTOINCREMENT, SupplyerName Text, Tell text, Email text, Address text);
+#CREATE TABLE IF NOT EXISTS FoodIngredent (ID integer PRIMARY KEY AUTOINCREMENT, Ingredent Name, Supplyer integer, PricePerUnit integer, FOREIGN KEY (Supplyer) REFERENCES FoodSupplyer(ID));
 #CREATE TABLE IF NOT EXISTS FoodOrder (ID integer PRIMARY KEY AUTOINCREMENT, FoodIngredent integer, Transac integer, FOREIGN KEY (Transac) REFERENCES Transac(ID), FOREIGN KEY (FoodIngredent) REFERENCES FoodIngredent(ID));
 import sqlite3
+import itertools
+import functools
 DataPath="FoodDataBase.db"
 class Company:
 	def __init__(self,ID):
@@ -19,10 +21,7 @@ class Company:
 		c.execute('''SELECT ID FROM Company''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
@@ -68,10 +67,7 @@ class Tutor:
 		c.execute('''SELECT ID FROM Tutor''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
@@ -143,7 +139,7 @@ class Tutor:
 		return str(self.TableJson())
 class Customer:
 	def __init__(self,ID):
-		"""Customer Table Contains columns: CustomerName of type text|| Tutor of type integer|| Foreign Keys: Customer.Tutor refrences Tutor.ID"""
+		"""Customer Table Contains columns: Tutor of type integer|| CustomerName of type text|| Foreign Keys: Customer.Tutor refrences Tutor.ID"""
 		self.ID=ID
 	@classmethod
 	def GetAllKeys(cls):
@@ -153,37 +149,17 @@ class Customer:
 		c.execute('''SELECT ID FROM Customer''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO Customer(CustomerName,Tutor) VALUES (?,?)",(None,None,))
+		c.execute("INSERT INTO Customer(Tutor,CustomerName) VALUES (?,?)",(None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
-	@property
-	def CustomerName(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT CustomerName FROM Customer WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@CustomerName.setter
-	def CustomerName(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE Customer SET CustomerName=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
 	@property
 	def Tutor(self):
 		global DataPath
@@ -201,16 +177,33 @@ class Customer:
 		c.execute('''UPDATE Customer SET Tutor=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def CustomerName(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT CustomerName FROM Customer WHERE ID=?''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		return Val[0]
+	@CustomerName.setter
+	def CustomerName(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Customer SET CustomerName=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["CustomerName"]=self.CustomerName
 		r["Tutor"]=self.Tutor
+		r["CustomerName"]=self.CustomerName
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class Transac:
 	def __init__(self,ID):
-		"""Transac Table Contains columns: Customer of type integer|| Time of type timestamp|| Foreign Keys: Transac.Customer refrences Customer.ID"""
+		"""Transac Table Contains columns: Time of type timestamp|| Customer of type integer|| Foreign Keys: Transac.Customer refrences Customer.ID"""
 		self.ID=ID
 	@classmethod
 	def GetAllKeys(cls):
@@ -220,37 +213,17 @@ class Transac:
 		c.execute('''SELECT ID FROM Transac''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO Transac(Customer,Time) VALUES (?,?)",(None,None,))
+		c.execute("INSERT INTO Transac(Time,Customer) VALUES (?,?)",(None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
-	@property
-	def Customer(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT Customer FROM Transac WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@Customer.setter
-	def Customer(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE Transac SET Customer=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
 	@property
 	def Time(self):
 		global DataPath
@@ -268,16 +241,33 @@ class Transac:
 		c.execute('''UPDATE Transac SET Time=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def Customer(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Customer FROM Transac WHERE ID=?''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		return Val[0]
+	@Customer.setter
+	def Customer(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Transac SET Customer=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["Customer"]=self.Customer
 		r["Time"]=self.Time
+		r["Customer"]=self.Customer
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class FoodSupplyer:
 	def __init__(self,ID):
-		"""FoodSupplyer Table Contains columns: Address of type text|| Email of type text|| SupplyerName of type Text|| Tell of type text|| Foreign Keys: """
+		"""FoodSupplyer Table Contains columns: SupplyerName of type Text|| Tell of type text|| Email of type text|| Address of type text|| Foreign Keys: """
 		self.ID=ID
 	@classmethod
 	def GetAllKeys(cls):
@@ -287,54 +277,17 @@ class FoodSupplyer:
 		c.execute('''SELECT ID FROM FoodSupplyer''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO FoodSupplyer(Address,Email,SupplyerName,Tell) VALUES (?,?,?,?)",(None,None,None,None,))
+		c.execute("INSERT INTO FoodSupplyer(SupplyerName,Tell,Email,Address) VALUES (?,?,?,?)",(None,None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
-	@property
-	def Address(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT Address FROM FoodSupplyer WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@Address.setter
-	def Address(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE FoodSupplyer SET Address=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
-	@property
-	def Email(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT Email FROM FoodSupplyer WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@Email.setter
-	def Email(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE FoodSupplyer SET Email=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
 	@property
 	def SupplyerName(self):
 		global DataPath
@@ -369,18 +322,52 @@ class FoodSupplyer:
 		c.execute('''UPDATE FoodSupplyer SET Tell=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def Email(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Email FROM FoodSupplyer WHERE ID=?''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		return Val[0]
+	@Email.setter
+	def Email(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodSupplyer SET Email=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
+	@property
+	def Address(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Address FROM FoodSupplyer WHERE ID=?''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		return Val[0]
+	@Address.setter
+	def Address(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodSupplyer SET Address=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["Address"]=self.Address
-		r["Email"]=self.Email
 		r["SupplyerName"]=self.SupplyerName
 		r["Tell"]=self.Tell
+		r["Email"]=self.Email
+		r["Address"]=self.Address
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class FoodIngredent:
 	def __init__(self,ID):
-		"""FoodIngredent Table Contains columns: Ingredent of type Name|| PricePerUnit of type integer|| Supplyer of type integer|| Foreign Keys: FoodIngredent.Supplyer refrences FoodSupplyer.ID"""
+		"""FoodIngredent Table Contains columns: Ingredent of type Name|| Supplyer of type integer|| PricePerUnit of type integer|| Foreign Keys: FoodIngredent.Supplyer refrences FoodSupplyer.ID"""
 		self.ID=ID
 	@classmethod
 	def GetAllKeys(cls):
@@ -390,16 +377,13 @@ class FoodIngredent:
 		c.execute('''SELECT ID FROM FoodIngredent''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO FoodIngredent(Ingredent,PricePerUnit,Supplyer) VALUES (?,?,?)",(None,None,None,))
+		c.execute("INSERT INTO FoodIngredent(Ingredent,Supplyer,PricePerUnit) VALUES (?,?,?)",(None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
@@ -422,23 +406,6 @@ class FoodIngredent:
 		c.close()
 		conn.commit()
 	@property
-	def PricePerUnit(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT PricePerUnit FROM FoodIngredent WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@PricePerUnit.setter
-	def PricePerUnit(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE FoodIngredent SET PricePerUnit=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
-	@property
 	def Supplyer(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
@@ -455,11 +422,28 @@ class FoodIngredent:
 		c.execute('''UPDATE FoodIngredent SET Supplyer=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def PricePerUnit(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT PricePerUnit FROM FoodIngredent WHERE ID=?''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		return Val[0]
+	@PricePerUnit.setter
+	def PricePerUnit(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodIngredent SET PricePerUnit=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
 		r["Ingredent"]=self.Ingredent
-		r["PricePerUnit"]=self.PricePerUnit
 		r["Supplyer"]=self.Supplyer
+		r["PricePerUnit"]=self.PricePerUnit
 		return r
 	def __str__(self):
 		return str(self.TableJson())
@@ -475,10 +459,7 @@ class FoodOrder:
 		c.execute('''SELECT ID FROM FoodOrder''')
 		Val= c.fetchall()
 		c.close()
-		ids=[]
-		for x in Val:
-			ids.append(x[0])
-		return ids
+		return list(functools.reduce(itertools.chain,Val))
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
