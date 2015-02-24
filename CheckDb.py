@@ -97,7 +97,10 @@ def Check():
 	f.close()
 	print ("checked")
 def LoadImports():
-	return '''from DataB import DataPath\r\nimport sqlite3\r\n'''
+	global DataPath
+	global SchemaPath
+	global Folder
+	return '''import sqlite3\r\nDataPath="{0}"\r\n'''.format(DataPath)
 def addTestData():
 	global DataPath
 	conn = sqlite3.connect(DataPath)
@@ -119,12 +122,19 @@ def getTestTableDB():
 	return vals
 
 def CreatePyClass(_Table):
-	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO Company(CompanyName) VALUES (?)",(None,))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n{2}'''
+	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n{2}'''
 	doc=_Table.TableName+ " Table Contains columns: "
-	Atributes=""
+	Atributes="\t@classmethod\r\n\tdef GetAllKeys(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT ID FROM {0}''')\r\n\t\tVal= c.fetchall()\r\n\t\tc.close()\r\n\t\tids=[]\r\n\t\tfor x in Val:\r\n\t\t\tids.append(x[0])\r\n\t\treturn ids\r\n".format(_Table.TableName)
+	no_of_col=len(_Table.col.keys())
+	Atributes+='''\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO {0}({1}) VALUES ({2})",({3},))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n'''.format(_Table.TableName,",".join(_Table.col.keys()),"?"+",?"*(no_of_col-1),"None"+",None"*(no_of_col-1))
+	strcast='''\tdef TableJson(self):\r\n\t\tr={"ID":self.ID}\r\n'''
 	for x in _Table.col.keys():
 		doc+=x+" of type "+_Table.col[x]+"|| "
-		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(self.ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\treturn Val\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {0} SET {1}=? WHERE ID=?''',(value,self.ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
+		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(self.ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\treturn Val[0]\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {1} SET {0}=? WHERE ID=?''',(value,self.ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
+		strcast+='''\t\tr["{0}"]=self.{0}\r\n'''.format(x)
+	strcast+='''\t\treturn r\r\n'''
+	Atributes+=strcast
+	Atributes+='''\tdef __str__(self):\r\n\t\treturn str(self.TableJson())\r\n'''
 	doc+="Foreign Keys: "
 	for x in _Table.ref:
 		doc+=_Table.TableName+"."+x.TableForeignKey+" refrences "+x.ForeignTable+"."+x.ForeignTablePrimaryKey
