@@ -1,33 +1,49 @@
-#CREATE TABLE IF NOT EXISTS Company (ID integer PRIMARY KEY AUTOINCREMENT, CompanyName text);
-#CREATE TABLE IF NOT EXISTS Tutor (ID integer PRIMARY KEY AUTOINCREMENT, TutorGroup integer, Company integer, TutorTeacher text, FOREIGN KEY (Company) REFERENCES Company(ID));
-#CREATE TABLE IF NOT EXISTS Customer (ID integer PRIMARY KEY AUTOINCREMENT, Tutor integer, CustomerName text, FOREIGN KEY (Tutor) REFERENCES Tutor(ID));
-#CREATE TABLE IF NOT EXISTS Transac (ID integer PRIMARY KEY AUTOINCREMENT, Time timestamp, Customer integer, FOREIGN KEY (Customer) REFERENCES Customer(ID));
-#CREATE TABLE IF NOT EXISTS FoodSupplyer (ID integer PRIMARY KEY AUTOINCREMENT, SupplyerName Text, Tell text, Email text, Address text);
-#CREATE TABLE IF NOT EXISTS FoodIngredent (ID integer PRIMARY KEY AUTOINCREMENT, Ingredent Name, Supplyer integer, PricePerUnit integer, FOREIGN KEY (Supplyer) REFERENCES FoodSupplyer(ID));
-#CREATE TABLE IF NOT EXISTS FoodOrder (ID integer PRIMARY KEY AUTOINCREMENT, FoodIngredent integer, Transac integer, FOREIGN KEY (Transac) REFERENCES Transac(ID), FOREIGN KEY (FoodIngredent) REFERENCES FoodIngredent(ID));
+#CREATE TABLE IF NOT EXISTS Company (ID integer PRIMARY KEY AUTOINCREMENT, CompanyName text, Removed integer);
+#CREATE TABLE IF NOT EXISTS Tutor (ID integer PRIMARY KEY AUTOINCREMENT, Company integer, TutorTeacher text, TutorGroup integer, Removed integer, FOREIGN KEY (Company) REFERENCES Company(ID) ON UPDATE CASCADE ON DELETE RESTRICT);
+#CREATE TABLE IF NOT EXISTS Customer (ID integer PRIMARY KEY AUTOINCREMENT, Tutor integer, CustomerName text, Removed integer, FOREIGN KEY (Tutor) REFERENCES Tutor(ID) ON UPDATE CASCADE ON DELETE RESTRICT);
+#CREATE TABLE IF NOT EXISTS Transac (ID integer PRIMARY KEY AUTOINCREMENT, Customer integer, Time timestamp, Removed integer, FOREIGN KEY (Customer) REFERENCES Customer(ID) ON UPDATE CASCADE ON DELETE RESTRICT);
+#CREATE TABLE IF NOT EXISTS FoodSupplyer (ID integer PRIMARY KEY AUTOINCREMENT, Tell text, Email text, Address text, SupplyerName Text, Removed integer);
+#CREATE TABLE IF NOT EXISTS FoodIngredent (ID integer PRIMARY KEY AUTOINCREMENT, Supplyer integer, Ingredent Name, PricePerUnit integer, Removed integer, FOREIGN KEY (Supplyer) REFERENCES FoodSupplyer(ID) ON UPDATE CASCADE ON DELETE RESTRICT);
+#CREATE TABLE IF NOT EXISTS FoodOrder (ID integer PRIMARY KEY AUTOINCREMENT, FoodIngredent integer, Transac integer, Removed integer, FOREIGN KEY (Transac) REFERENCES Transac(ID) ON UPDATE CASCADE ON DELETE RESTRICT, FOREIGN KEY (FoodIngredent) REFERENCES FoodIngredent(ID) ON UPDATE CASCADE ON DELETE RESTRICT);
 import sqlite3
 import itertools
 import functools
 DataPath="FoodDataBase.db"
 class Company:
 	def __init__(self,ID):
-		"""Company Table Contains columns: CompanyName of type text|| Foreign Keys: """
+		"""Company Table Contains columns: CompanyName of type text || Removed of type integer || Foreign Keys: """
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM Company WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM Company''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO Company(CompanyName) VALUES (?)",(None,))
+		c.execute("INSERT INTO Company(CompanyName,Removed) VALUES (?,?)",(None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
@@ -37,10 +53,12 @@ class Company:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT CompanyName FROM Company WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT CompanyName FROM Company WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@CompanyName.setter
 	def CompanyName(self,value):
 		global DataPath
@@ -49,61 +67,82 @@ class Company:
 		c.execute('''UPDATE Company SET CompanyName=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def Removed(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Removed FROM Company WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Company SET Removed=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
 		r["CompanyName"]=self.CompanyName
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class Tutor:
 	def __init__(self,ID):
-		"""Tutor Table Contains columns: TutorGroup of type integer|| Company of type integer|| TutorTeacher of type text|| Foreign Keys: Tutor.Company refrences Company.ID"""
+		"""Tutor Table Contains columns: Company of type integer || TutorTeacher of type text || TutorGroup of type integer || Removed of type integer || Foreign Keys: Tutor.Company refrences Company.ID"""
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM Tutor WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM Tutor''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO Tutor(TutorGroup,Company,TutorTeacher) VALUES (?,?,?)",(None,None,None,))
+		c.execute("INSERT INTO Tutor(Company,TutorTeacher,TutorGroup,Removed) VALUES (?,?,?,?)",(None,None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
 	@property
-	def TutorGroup(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT TutorGroup FROM Tutor WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@TutorGroup.setter
-	def TutorGroup(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE Tutor SET TutorGroup=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
-	@property
 	def Company(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Company FROM Tutor WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Company FROM Tutor WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Company.setter
 	def Company(self,value):
 		global DataPath
@@ -117,10 +156,12 @@ class Tutor:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT TutorTeacher FROM Tutor WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT TutorTeacher FROM Tutor WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@TutorTeacher.setter
 	def TutorTeacher(self,value):
 		global DataPath
@@ -129,33 +170,88 @@ class Tutor:
 		c.execute('''UPDATE Tutor SET TutorTeacher=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def TutorGroup(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT TutorGroup FROM Tutor WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@TutorGroup.setter
+	def TutorGroup(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Tutor SET TutorGroup=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
+	@property
+	def Removed(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Removed FROM Tutor WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Tutor SET Removed=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["TutorGroup"]=self.TutorGroup
 		r["Company"]=self.Company
 		r["TutorTeacher"]=self.TutorTeacher
+		r["TutorGroup"]=self.TutorGroup
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class Customer:
 	def __init__(self,ID):
-		"""Customer Table Contains columns: Tutor of type integer|| CustomerName of type text|| Foreign Keys: Customer.Tutor refrences Tutor.ID"""
+		"""Customer Table Contains columns: Tutor of type integer || CustomerName of type text || Removed of type integer || Foreign Keys: Customer.Tutor refrences Tutor.ID"""
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM Customer WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM Customer''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO Customer(Tutor,CustomerName) VALUES (?,?)",(None,None,))
+		c.execute("INSERT INTO Customer(Tutor,CustomerName,Removed) VALUES (?,?,?)",(None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
@@ -165,10 +261,12 @@ class Customer:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Tutor FROM Customer WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Tutor FROM Customer WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Tutor.setter
 	def Tutor(self,value):
 		global DataPath
@@ -182,10 +280,12 @@ class Customer:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT CustomerName FROM Customer WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT CustomerName FROM Customer WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@CustomerName.setter
 	def CustomerName(self,value):
 		global DataPath
@@ -194,45 +294,102 @@ class Customer:
 		c.execute('''UPDATE Customer SET CustomerName=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def Removed(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Removed FROM Customer WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Customer SET Removed=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
 		r["Tutor"]=self.Tutor
 		r["CustomerName"]=self.CustomerName
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class Transac:
 	def __init__(self,ID):
-		"""Transac Table Contains columns: Time of type timestamp|| Customer of type integer|| Foreign Keys: Transac.Customer refrences Customer.ID"""
+		"""Transac Table Contains columns: Customer of type integer || Time of type timestamp || Removed of type integer || Foreign Keys: Transac.Customer refrences Customer.ID"""
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM Transac WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM Transac''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO Transac(Time,Customer) VALUES (?,?)",(None,None,))
+		c.execute("INSERT INTO Transac(Customer,Time,Removed) VALUES (?,?,?)",(None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
 	@property
+	def Customer(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Customer FROM Transac WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Customer.setter
+	def Customer(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE Transac SET Customer=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
+	@property
 	def Time(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Time FROM Transac WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Time FROM Transac WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Time.setter
 	def Time(self,value):
 		global DataPath
@@ -242,78 +399,82 @@ class Transac:
 		c.close()
 		conn.commit()
 	@property
-	def Customer(self):
+	def Removed(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Customer FROM Transac WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Removed FROM Transac WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
-	@Customer.setter
-	def Customer(self,value):
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''UPDATE Transac SET Customer=? WHERE ID=?''',(value,self.ID))
+		c.execute('''UPDATE Transac SET Removed=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["Time"]=self.Time
 		r["Customer"]=self.Customer
+		r["Time"]=self.Time
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class FoodSupplyer:
 	def __init__(self,ID):
-		"""FoodSupplyer Table Contains columns: SupplyerName of type Text|| Tell of type text|| Email of type text|| Address of type text|| Foreign Keys: """
+		"""FoodSupplyer Table Contains columns: Tell of type text || Email of type text || Address of type text || SupplyerName of type Text || Removed of type integer || Foreign Keys: """
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM FoodSupplyer WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM FoodSupplyer''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO FoodSupplyer(SupplyerName,Tell,Email,Address) VALUES (?,?,?,?)",(None,None,None,None,))
+		c.execute("INSERT INTO FoodSupplyer(Tell,Email,Address,SupplyerName,Removed) VALUES (?,?,?,?,?)",(None,None,None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
 	@property
-	def SupplyerName(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT SupplyerName FROM FoodSupplyer WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@SupplyerName.setter
-	def SupplyerName(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE FoodSupplyer SET SupplyerName=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
-	@property
 	def Tell(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Tell FROM FoodSupplyer WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Tell FROM FoodSupplyer WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Tell.setter
 	def Tell(self,value):
 		global DataPath
@@ -327,10 +488,12 @@ class FoodSupplyer:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Email FROM FoodSupplyer WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Email FROM FoodSupplyer WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Email.setter
 	def Email(self,value):
 		global DataPath
@@ -344,10 +507,12 @@ class FoodSupplyer:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Address FROM FoodSupplyer WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Address FROM FoodSupplyer WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Address.setter
 	def Address(self,value):
 		global DataPath
@@ -356,64 +521,104 @@ class FoodSupplyer:
 		c.execute('''UPDATE FoodSupplyer SET Address=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def SupplyerName(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT SupplyerName FROM FoodSupplyer WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@SupplyerName.setter
+	def SupplyerName(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodSupplyer SET SupplyerName=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
+	@property
+	def Removed(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Removed FROM FoodSupplyer WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodSupplyer SET Removed=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["SupplyerName"]=self.SupplyerName
 		r["Tell"]=self.Tell
 		r["Email"]=self.Email
 		r["Address"]=self.Address
+		r["SupplyerName"]=self.SupplyerName
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class FoodIngredent:
 	def __init__(self,ID):
-		"""FoodIngredent Table Contains columns: Ingredent of type Name|| Supplyer of type integer|| PricePerUnit of type integer|| Foreign Keys: FoodIngredent.Supplyer refrences FoodSupplyer.ID"""
+		"""FoodIngredent Table Contains columns: Supplyer of type integer || Ingredent of type Name || PricePerUnit of type integer || Removed of type integer || Foreign Keys: FoodIngredent.Supplyer refrences FoodSupplyer.ID"""
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM FoodIngredent WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM FoodIngredent''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO FoodIngredent(Ingredent,Supplyer,PricePerUnit) VALUES (?,?,?)",(None,None,None,))
+		c.execute("INSERT INTO FoodIngredent(Supplyer,Ingredent,PricePerUnit,Removed) VALUES (?,?,?,?)",(None,None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
 		return cls(NewID)
 	@property
-	def Ingredent(self):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''SELECT Ingredent FROM FoodIngredent WHERE ID=?''',(self.ID,))
-		Val= c.fetchone()
-		c.close()
-		return Val[0]
-	@Ingredent.setter
-	def Ingredent(self,value):
-		global DataPath
-		conn = sqlite3.connect(DataPath)
-		c= conn.cursor()
-		c.execute('''UPDATE FoodIngredent SET Ingredent=? WHERE ID=?''',(value,self.ID))
-		c.close()
-		conn.commit()
-	@property
 	def Supplyer(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Supplyer FROM FoodIngredent WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Supplyer FROM FoodIngredent WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Supplyer.setter
 	def Supplyer(self,value):
 		global DataPath
@@ -423,14 +628,35 @@ class FoodIngredent:
 		c.close()
 		conn.commit()
 	@property
+	def Ingredent(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Ingredent FROM FoodIngredent WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Ingredent.setter
+	def Ingredent(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodIngredent SET Ingredent=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
+	@property
 	def PricePerUnit(self):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT PricePerUnit FROM FoodIngredent WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT PricePerUnit FROM FoodIngredent WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@PricePerUnit.setter
 	def PricePerUnit(self,value):
 		global DataPath
@@ -439,33 +665,69 @@ class FoodIngredent:
 		c.execute('''UPDATE FoodIngredent SET PricePerUnit=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def Removed(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Removed FROM FoodIngredent WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodIngredent SET Removed=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
-		r["Ingredent"]=self.Ingredent
 		r["Supplyer"]=self.Supplyer
+		r["Ingredent"]=self.Ingredent
 		r["PricePerUnit"]=self.PricePerUnit
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())
 class FoodOrder:
 	def __init__(self,ID):
-		"""FoodOrder Table Contains columns: FoodIngredent of type integer|| Transac of type integer|| Foreign Keys: FoodOrder.Transac refrences Transac.IDFoodOrder.FoodIngredent refrences FoodIngredent.ID"""
+		"""FoodOrder Table Contains columns: FoodIngredent of type integer || Transac of type integer || Removed of type integer || Foreign Keys: FoodOrder.Transac refrences Transac.IDFoodOrder.FoodIngredent refrences FoodIngredent.ID"""
 		self.ID=ID
+		self.Removed=0
 	@classmethod
-	def GetAllKeys(cls):
+	def GetAllLiveKeys(cls):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT ID FROM FoodOrder WHERE Removed=0''')
+		Val= c.fetchall()
+		c.close()
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
+	@classmethod
+	def GetAllRawKeys(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
 		c.execute('''SELECT ID FROM FoodOrder''')
 		Val= c.fetchall()
 		c.close()
-		return list(functools.reduce(itertools.chain,Val))
+		if len(Val)>0:
+			return list(functools.reduce(itertools.chain,Val))
+		else:
+			return []
 	@classmethod
 	def CreateNode(cls):
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute("INSERT INTO FoodOrder(FoodIngredent,Transac) VALUES (?,?)",(None,None,))
+		c.execute("INSERT INTO FoodOrder(FoodIngredent,Transac,Removed) VALUES (?,?,?)",(None,None,None,))
 		NewID=c.lastrowid
 		c.close()
 		conn.commit()
@@ -475,10 +737,12 @@ class FoodOrder:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT FoodIngredent FROM FoodOrder WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT FoodIngredent FROM FoodOrder WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@FoodIngredent.setter
 	def FoodIngredent(self,value):
 		global DataPath
@@ -492,10 +756,12 @@ class FoodOrder:
 		global DataPath
 		conn = sqlite3.connect(DataPath)
 		c= conn.cursor()
-		c.execute('''SELECT Transac FROM FoodOrder WHERE ID=?''',(self.ID,))
+		c.execute('''SELECT Transac FROM FoodOrder WHERE ID=? AND Removed=0''',(self.ID,))
 		Val= c.fetchone()
 		c.close()
-		return Val[0]
+		if Val!=None:
+			return Val[0]
+		return None
 	@Transac.setter
 	def Transac(self,value):
 		global DataPath
@@ -504,10 +770,30 @@ class FoodOrder:
 		c.execute('''UPDATE FoodOrder SET Transac=? WHERE ID=?''',(value,self.ID))
 		c.close()
 		conn.commit()
+	@property
+	def Removed(self):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''SELECT Removed FROM FoodOrder WHERE ID=? AND Removed=0''',(self.ID,))
+		Val= c.fetchone()
+		c.close()
+		if Val!=None:
+			return Val[0]
+		return None
+	@Removed.setter
+	def Removed(self,value):
+		global DataPath
+		conn = sqlite3.connect(DataPath)
+		c= conn.cursor()
+		c.execute('''UPDATE FoodOrder SET Removed=? WHERE ID=?''',(value,self.ID))
+		c.close()
+		conn.commit()
 	def TableJson(self):
 		r={"ID":self.ID}
 		r["FoodIngredent"]=self.FoodIngredent
 		r["Transac"]=self.Transac
+		r["Removed"]=self.Removed
 		return r
 	def __str__(self):
 		return str(self.TableJson())

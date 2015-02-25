@@ -5,21 +5,29 @@
 		<link rel="stylesheet" href="/static/bootstrap.css" media="screen">
 	</head>
 	<body>
-		<div class = "jumbotron">
-			<p>Test</p>
-			<div class="dropdown">
-  				<button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-expanded="true">
-    				Dropdown
-    				<span class="caret"></span>
-  				</button>
-  				<ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
-  					{% for o in Companys %}
-  						<li role="presentation"><a role="menuitem" tabindex="-1" href="#">{{o.CompanyName}}</a></li>
-  					{% else %}
-  						<li role="presentation">None</a></li>
-  					{% endfor %}
-  				</ul>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+		<form action="" method="post">
+		<div class = "col-md-6">
+			<div class="panel panel-default">
+  			<div class="panel-heading">Panel heading</div>
+  			<table class="table">
+  				<tr><td>ID</td><td>CompanyName</td><td>Remove</td></tr>
+  				{% for o in Companys %}
+  				<tr><td>{{o.ID}}</td><td>{{o.CompanyName}}</td><td><button class="btn btn-default" role="button" type="submit" name="BtnRemoveEntry" value="{{o.ID}}">X</button></td></tr>
+  				{% endfor %}
+  			</table>
 			</div>
+		</div>
+		
+		<div class = "jumbotron col-md-6">
+			    <div class="input-group">
+      <input type="text" class="form-control" placeholder="New Company..." name="TxtAddCompany">
+            <span class="input-group-btn">
+        <button class="btn btn-default" role="button" type="submit" name="BtnAddCompany">Add Company</button>
+      </span>
+    </div>
+    </form><!-- /input-group -->
 		</div>
 	</body>
 <html>
