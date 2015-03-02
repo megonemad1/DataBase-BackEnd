@@ -53,7 +53,7 @@ def PageAddCompany():
 	t=tableJson(Schema.Company)
 	
 	print ("keys: {0} ".format(len(Schema.Company.GetAllKeys())))
-	return render_template("AddCompany.html",Companys=t)
+	return render_template("AddCompany.html",FullTable=t,TableKeys=Schema.Company.expectedkeys())
 
 
 @app.route('/AddTutor',methods=['GET','POST'])
@@ -63,4 +63,4 @@ def PageAddTutor():
 		return redirect('/AddTutor')
 	t=tableJson(Schema.Tutor)
 	print ("keys: {0} ".format(len(Schema.Company.GetAllKeys())))
-	return render_template("AddTutor.html",Tutor=t)
+	return render_template("AddCompany.html",Tutor=t,TableKeys=Schema.Tutor.expectedkeys())

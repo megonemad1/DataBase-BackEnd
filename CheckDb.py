@@ -129,12 +129,16 @@ def CreatePyClass(_Table):
 	no_of_col=len(_Table.col.keys())
 	Atributes+='''\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO {0}({1}) VALUES ({2})",({3},))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n\tdef Remove(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("DELETE FROM {0} WHERE ID=?;",(self.ID,))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\tself.ID=None\r\n'''.format(_Table.TableName,",".join(_Table.col.keys()),"?"+",?"*(no_of_col-1),"None"+",None"*(no_of_col-1))
 	strcast='''\tdef TableJson(self):\r\n\t\tr={"ID":self.ID}\r\n'''
+	expectedkeys='''\t@classmethod\r\n\tdef expectedkeys(cls):\r\n\t\tr=["ID"]\r\n'''
 	for x in _Table.col.keys():
 		doc+=x+" of type "+_Table.col[x]+" || "
 		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(self.ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\tif Val!=None:\r\n\t\t\treturn Val[0]\r\n\t\treturn None\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {1} SET {0}=? WHERE ID=?''',(value,self.ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
 		strcast+='''\t\tr["{0}"]=self.{0}\r\n'''.format(x)
+		expectedkeys+='''\t\tr.append("{0}")\r\n'''.format(x)
 	strcast+='''\t\treturn r\r\n'''
+	expectedkeys+='''\t\treturn r\r\n'''
 	Atributes+=strcast
+	Atributes+=expectedkeys
 	Atributes+='''\tdef __str__(self):\r\n\t\treturn str(self.TableJson())\r\n'''
 	doc+="Foreign Keys: "
 	for x in _Table.ref:
