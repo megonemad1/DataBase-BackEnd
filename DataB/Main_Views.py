@@ -20,7 +20,13 @@ def Validation(Text,Type):
 			return False
 		return (i >=0)
 			
-		
+def tableJson(Tablecls=None):
+	if Tablecls==None:
+		return None
+	t=[]
+	for n in Tablecls.GetAllKeys():
+		t.append(Tablecls(n).TableJson())
+	return t
 
 @app.route('/AddCompany',methods=['GET','POST'])
 def PageAddCompany():
@@ -36,12 +42,25 @@ def PageAddCompany():
 			val = request.form['BtnRemoveEntry']
 			if Validation(val,"id"):
 				CompanyToRemove=Schema.Company(int(val))
-				print(CompanyToRemove)
-				CompanyToRemove.Removed=1
-				print(CompanyToRemove)
+				CompanyToRemove.Remove()
+		if ( 'BtnEditEntry' in request.form):			
+			val = request.form['BtnEditEntry']
+			print(val)
+			if Validation(val,"id"):
+				#print('/EditCompany/'+str(val))
+				return redirect('/EditCompany/'+str(val))
 		return redirect('/AddCompany')
-	t=[]
-	for n in Schema.Company.GetAllLiveKeys():
-		t.append(Schema.Company(n).TableJson())
-	print ("live keys: {0} Dead Keys: {1}".format(len(Schema.Company.GetAllLiveKeys()),len(Schema.Company.GetAllRawKeys())))
+	t=tableJson(Schema.Company)
+	
+	print ("keys: {0} ".format(len(Schema.Company.GetAllKeys())))
 	return render_template("AddCompany.html",Companys=t)
+
+
+@app.route('/AddTutor',methods=['GET','POST'])
+def PageAddTutor():
+	if request.method=="POST":
+			#formstuff
+		return redirect('/AddTutor')
+	t=tableJson(Schema.Tutor)
+	print ("keys: {0} ".format(len(Schema.Company.GetAllKeys())))
+	return render_template("AddTutor.html",Tutor=t)

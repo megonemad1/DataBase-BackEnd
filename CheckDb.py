@@ -8,7 +8,7 @@ class Refrence:
 		self.ForeignTable=FT
 		self.ForeignTablePrimaryKey=FTPK
 	def __str__(self):
-		return '''FOREIGN KEY ({0}) REFERENCES {1}({2}) ON UPDATE CASCADE ON DELETE RESTRICT'''.format(self.TableForeignKey,self.ForeignTable,self.ForeignTablePrimaryKey)
+		return '''FOREIGN KEY ({0}) REFERENCES {1}({2}) ON UPDATE CASCADE ON DELETE CASCADE'''.format(self.TableForeignKey,self.ForeignTable,self.ForeignTablePrimaryKey)
 	__repr__ = __str__
 	
 
@@ -18,7 +18,6 @@ class Table:
 		self.TableName=tablename
 		self.col={}
 		self.ref=[]
-		self.AddCol("Removed integer")
 
 	def AddCol(self, ColAsStr):
 		c = str.split(ColAsStr," ")
@@ -124,15 +123,15 @@ def getTestTableDB():
 	return vals
 
 def CreatePyClass(_Table):
-	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n\t\tself.Removed=0\r\n{2}'''
+	rs='''class {0}:\r\n\tdef __init__(self,ID):\r\n\t\t"""{1}"""\r\n\t\tself.ID=ID\r\n{2}'''
 	doc=_Table.TableName+ " Table Contains columns: "
-	Atributes="\t@classmethod\r\n\tdef GetAllLiveKeys(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT ID FROM {0} WHERE Removed=0''')\r\n\t\tVal= c.fetchall()\r\n\t\tc.close()\r\n\t\tif len(Val)>0:\r\n\t\t\treturn list(functools.reduce(itertools.chain,Val))\r\n\t\telse:\r\n\t\t\treturn []\r\n\t@classmethod\r\n\tdef GetAllRawKeys(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT ID FROM {0}''')\r\n\t\tVal= c.fetchall()\r\n\t\tc.close()\r\n\t\tif len(Val)>0:\r\n\t\t\treturn list(functools.reduce(itertools.chain,Val))\r\n\t\telse:\r\n\t\t\treturn []\r\n".format(_Table.TableName)
+	Atributes="\t@classmethod\r\n\tdef GetAllKeys(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT ID FROM {0}''')\r\n\t\tVal= c.fetchall()\r\n\t\tc.close()\r\n\t\tif len(Val)>0:\r\n\t\t\treturn list(functools.reduce(itertools.chain,Val))\r\n\t\telse:\r\n\t\t\treturn []\r\n".format(_Table.TableName)
 	no_of_col=len(_Table.col.keys())
-	Atributes+='''\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO {0}({1}) VALUES ({2})",({3},))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n'''.format(_Table.TableName,",".join(_Table.col.keys()),"?"+",?"*(no_of_col-1),"None"+",None"*(no_of_col-1))
+	Atributes+='''\t@classmethod\r\n\tdef CreateNode(cls):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("INSERT INTO {0}({1}) VALUES ({2})",({3},))\r\n\t\tNewID=c.lastrowid\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\treturn cls(NewID)\r\n\tdef Remove(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute("DELETE FROM {0} WHERE ID=?;",(self.ID,))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n\t\tself.ID=None\r\n'''.format(_Table.TableName,",".join(_Table.col.keys()),"?"+",?"*(no_of_col-1),"None"+",None"*(no_of_col-1))
 	strcast='''\tdef TableJson(self):\r\n\t\tr={"ID":self.ID}\r\n'''
 	for x in _Table.col.keys():
 		doc+=x+" of type "+_Table.col[x]+" || "
-		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=? AND Removed=0''',(self.ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\tif Val!=None:\r\n\t\t\treturn Val[0]\r\n\t\treturn None\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {1} SET {0}=? WHERE ID=?''',(value,self.ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
+		Atributes+="\t@property\r\n\tdef {0}(self):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''SELECT {0} FROM {1} WHERE ID=?''',(self.ID,))\r\n\t\tVal= c.fetchone()\r\n\t\tc.close()\r\n\t\tif Val!=None:\r\n\t\t\treturn Val[0]\r\n\t\treturn None\r\n\t@{0}.setter\r\n\tdef {0}(self,value):\r\n\t\tglobal DataPath\r\n\t\tconn = sqlite3.connect(DataPath)\r\n\t\tc= conn.cursor()\r\n\t\tc.execute('''UPDATE {1} SET {0}=? WHERE ID=?''',(value,self.ID))\r\n\t\tc.close()\r\n\t\tconn.commit()\r\n".format(x,_Table.TableName)
 		strcast+='''\t\tr["{0}"]=self.{0}\r\n'''.format(x)
 	strcast+='''\t\treturn r\r\n'''
 	Atributes+=strcast

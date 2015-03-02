@@ -10,11 +10,11 @@
 		<form action="" method="post">
 		<div class = "col-md-6">
 			<div class="panel panel-default">
-  			<div class="panel-heading">Panel heading</div>
+  			<div class="panel-heading">Companys</div>
   			<table class="table">
-  				<tr><td>ID</td><td>CompanyName</td><td>Remove</td></tr>
+  				<tr><td>ID</td><td>CompanyName</td><td>Edit</td><td>Remove</td></tr>
   				{% for o in Companys %}
-  				<tr><td>{{o.ID}}</td><td>{{o.CompanyName}}</td><td><button class="btn btn-default" role="button" type="submit" name="BtnRemoveEntry" value="{{o.ID}}">X</button></td></tr>
+  				<tr><td>{{o.ID}}</td><td>{{o.CompanyName}}</td><td><button class="btn btn-default" role="button" type="submit" name="BtnEditEntry" value="{{o.ID}}">Edit</button></td><td><button class="btn btn-default" role="button" type="submit" name="BtnRemoveEntry" value="{{o.ID}}">X</button></td></tr>
   				{% endfor %}
   			</table>
 			</div>
